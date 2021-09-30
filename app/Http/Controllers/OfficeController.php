@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Http\Resources\OfficeResource;
 use App\Models\Office;
 use App\Models\Reservation;
 use App\Models\Validators\OfficeValidator;
+use App\Notifications\OfficePendingApproval;
 use Illuminate\Auth\Middleware\Authorize;
 // use Illuminate\Contracts\Validation\Rule;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,7 +17,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Nette\Utils\Json;
 
 class OfficeController extends Controller
@@ -76,7 +80,11 @@ class OfficeController extends Controller
             return $office;
         });
 
-        return OfficeResource::make($office);
+        Notification::send(User::firstWhere('name', 'Admin'), new OfficePendingApproval($office));
+
+        return OfficeResource::make(
+            $office->load(['images', 'tags', 'user']),
+        );
     }
 
     public function update(Office $office): JsonResource
@@ -89,10 +97,14 @@ class OfficeController extends Controller
 
         $data = (new OfficeValidator())->validate($office, request()->all());
 
+        $office->fill(Arr::except($data, ['tags']));
+
+        if($requiresReview = $office->isDirty(['lat', 'lng', 'price_per_day'])){
+            $office->fill(['approval_status' => Office::APPROVAL_PENDING]);
+        }
+
         DB::transaction(function () use ($office, $data){
-            $office->update(
-                Arr::except($data, ['tags'])
-            );
+            $office->save();
     
             if(isset($data['tags']))
             {
@@ -100,6 +112,27 @@ class OfficeController extends Controller
             }
         });
 
-        return OfficeResource::make($office);
+        if($requiresReview){
+            Notification::send(User::firstWhere('name', 'Admin'), new OfficePendingApproval($office));
+        }
+
+        return OfficeResource::make(
+            $office->load(['images', 'tags', 'user'])
+        );
+    }
+
+    public function delete(Office $office)
+    {
+        if(!auth()->user()->tokenCan('office.delete')){
+            abort(Response::HTTP_FORBIDDEN);
+        }
+
+        $this->authorize('delete', $office);
+
+        if($office->reservations()->where('status', Reservation::STATUS_ACTIVE)->exists()){
+            throw ValidationException::withMessages(['office' => 'Cannot delete this office because it has active reservations.']);
+        }
+
+        $office->delete();
     }
 }

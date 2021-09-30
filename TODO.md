@@ -45,7 +45,7 @@
 [x] Office approval status should be pending or approved only ... no rejected\
 [x] Store office inside a database transaction
 
-[] Notify admin when new office
+[x] Notify admin when new office
 
 ## Office photos
 
@@ -58,16 +58,16 @@
 
 [x] host must be authenticated & email verified
 [x] Token (if exits) must allow `office.update`
-[] Can only update their own offices
+[x] Can only update their own offices
 [x] Validation
-[] Mark as pending when critical attributes are updated and notify admin
+[x] Mark as pending when critical attributes are updated and notify admin
 
 ## Delete office endpoint
 
-[] host must be authenticated & email verified
-[] Token (if exits) must allow `office.delete`
-[] Can only delete their own offices
-[] Cannot delete an office that has a reservation
+[x] host must be authenticated & email verified
+[x] Token (if exits) must allow `office.delete`
+[x] Can only delete their own offices
+[x] Cannot delete an office that has a reservation
 
 ## List reservations endpoint
 
