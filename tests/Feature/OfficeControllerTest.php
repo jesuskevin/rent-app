@@ -48,6 +48,22 @@ class OfficeControllerTest extends TestCase
         $response->assertJsonCount(3, 'data');
     }
 
+    public function test_itOnlyListOfficesIncludingHiddenAndApprovedIfFilteringForCurrentLoggedInUser()
+    {
+        $user = User::factory()->create();
+
+        Office::factory(3)->for($user)->create();
+        Office::factory()->for($user)->create(['hidden' => true]);
+        Office::factory()->for($user)->create(['approval_status' => Office::APPROVAL_PENDING]);
+
+        $this->actingAs($user);
+
+        $response = $this->get('/api/offices?user_id='. $user->id);
+
+        $response->assertOk();
+        $response->assertJsonCount(5, 'data');
+    }
+
     public function test_itFiltersByUserId()
     {
         Office::factory(3)->create();
@@ -168,40 +184,30 @@ class OfficeControllerTest extends TestCase
 
     public function test_itCreatesAnOffice()
     {
-        $admin = User::factory()->create([
-            'name' => 'Admin',
-        ]);
-
         Notification::fake();
-
-        $user = User::factory()->createQuietly();
-        $tag = Tag::factory()->create();
-        $tag2 = Tag::factory()->create();
-
-        $this->actingAs($user);
-
-        $response = $this->postJson('/api/offices', [
-            'title' => 'Office in Arkansas',
-            'description' => 'Description',
-            'lat' => '39.088216161034566',
-            'lng' => '-9.252385883312964',
-            'address_line1' => 'address',
-            'price_per_day' => 10_000,
-            'monthly_discount' => 5,
-            'tags' => [
-                $tag->id,
-                $tag2->id,
-            ]
+        
+        $admin = User::factory()->create([
+            'is_admin' => true,
         ]);
+
+        $user = User::factory()->create();
+        $tags = Tag::factory(2)->create();
+
+        Sanctum::actingAs($user, ['*']);
+
+        $response = $this->postJson('/api/offices', Office::factory()->raw([
+            'tags' => $tags->pluck('id')->toArray()
+        ]));
 
         $response->assertCreated()
-            ->assertJsonPath('data.title', 'Office in Arkansas')
+            // ->assertJsonPath('data.title', 'Office in Arkansas')
+            ->assertJsonPath('data.reservations_count', 0)
             ->assertJsonPath('data.approval_status', Office::APPROVAL_PENDING)
             ->assertJsonPath('data.user.id', $user->id)
             ->assertJsonCount(2, 'data.tags');
 
         $this->assertDatabaseHas('offices', [
-            'title' => 'Office in Arkansas'
+            'id' => $response->json('data.id')
         ]);
 
         Notification::assertSentTo($admin, OfficePendingApproval::class);
@@ -240,7 +246,7 @@ class OfficeControllerTest extends TestCase
         
         $office->tags()->attach($tags);
 
-        $this->actingAs($user);
+        Sanctum::actingAs($user);
 
         $response = $this->putJson('/api/offices/'.$office->id, [
             'title' => 'Amazing office',
@@ -261,7 +267,7 @@ class OfficeControllerTest extends TestCase
         $anotherUser = User::factory()->create();
         $office = Office::factory()->for($anotherUser)->create();
 
-        $this->actingAs($user);
+        Sanctum::actingAs($user);
 
         $response = $this->putJson('/api/offices/'.$office->id, [
             'title' => 'Amazing office',
@@ -275,7 +281,7 @@ class OfficeControllerTest extends TestCase
     public function test_itMarksTheOfficeAsPendingIfDirtyAndSendNotificationToAdmin()
     {
         $admin = User::factory()->create([
-            'name' => 'Admin',
+            'is_admin' => true,
         ]);
 
         Notification::fake();
@@ -283,7 +289,7 @@ class OfficeControllerTest extends TestCase
         $user = User::factory()->create();
         $office = Office::factory()->for($user)->create();
 
-        $this->actingAs($user);
+        Sanctum::actingAs($user);
 
         $response = $this->putJson('/api/offices/'.$office->id, [
             'lat' => '38.720661384644047',
@@ -303,9 +309,9 @@ class OfficeControllerTest extends TestCase
         $user = User::factory()->create();
         $office = Office::factory()->for($user)->create();
 
-        $this->actingAs($user);
+        Sanctum::actingAs($user);
 
-        $response = $this->delete('/api/offices/'.$office->id);
+        $response = $this->deleteJson('/api/offices/'.$office->id);
 
         $response->assertOk();
 
@@ -320,11 +326,11 @@ class OfficeControllerTest extends TestCase
 
         Reservation::factory(3)->for($office)->create();
 
-        $this->actingAs($user);
+        Sanctum::actingAs($user);
 
-        $response = $this->delete('/api/offices/'.$office->id);
+        $response = $this->deleteJson('/api/offices/'.$office->id);
 
-        $response->assertStatus(Response::HTTP_FOUND);
+        $response->assertUnprocessable();
 
         $this->assertDatabaseHas('offices', [
             'id' => $office->id,
