@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\OfficeController;
 use App\Http\Controllers\TagController;
+use App\Http\Controllers\OfficeImageController;
 use App\Models\Office;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -34,3 +35,6 @@ Route::put('/offices/{office}', [OfficeController::class, 'update'])
 Route::delete('/offices/{office}', [OfficeController::class, 'delete'])
         ->middleware(['auth:sanctum', 'verified']);
 
+//Office Photos...
+Route::post('/offices/{office}/images', [OfficeImageController::class, 'store'])
+        ->middleware(['auth:sanctum', 'verified']);

@@ -246,7 +246,7 @@ class OfficeControllerTest extends TestCase
         
         $office->tags()->attach($tags);
 
-        Sanctum::actingAs($user);
+        $this->actingAs($user);
 
         $response = $this->putJson('/api/offices/'.$office->id, [
             'title' => 'Amazing office',
@@ -289,7 +289,7 @@ class OfficeControllerTest extends TestCase
         $user = User::factory()->create();
         $office = Office::factory()->for($user)->create();
 
-        Sanctum::actingAs($user);
+        $this->actingAs($user);
 
         $response = $this->putJson('/api/offices/'.$office->id, [
             'lat' => '38.720661384644047',
@@ -309,7 +309,7 @@ class OfficeControllerTest extends TestCase
         $user = User::factory()->create();
         $office = Office::factory()->for($user)->create();
 
-        Sanctum::actingAs($user);
+        $this->actingAs($user);
 
         $response = $this->deleteJson('/api/offices/'.$office->id);
 
@@ -326,7 +326,7 @@ class OfficeControllerTest extends TestCase
 
         Reservation::factory(3)->for($office)->create();
 
-        Sanctum::actingAs($user);
+        $this->actingAs($user);
 
         $response = $this->deleteJson('/api/offices/'.$office->id);
 
