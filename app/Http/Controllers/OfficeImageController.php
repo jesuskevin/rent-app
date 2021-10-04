@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\ImageResource;
+use App\Models\Image;
 use App\Models\Office;
+use Illuminate\Contracts\Cache\Store;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class OfficeImageController extends Controller
 {
@@ -29,5 +33,30 @@ class OfficeImageController extends Controller
         ]);
 
         return ImageResource::make($image);
+    }
+
+    public function delete(Office $office, Image $image)
+    {
+        if(!auth()->user()->tokenCan('office.update')){
+            abort(Response::HTTP_FORBIDDEN);
+        }
+
+        $this->authorize('update', $office);
+
+        if($image->resource_type != 'office'|| $image->resource_id != $office->id){
+            throw ValidationException::withMessages(['image' => 'cannot delete this image.']);
+        }
+
+        if($office->images()->count() == 1){
+            throw ValidationException::withMessages(['image' => 'cannot delete the only image.']);
+        }
+
+        if($office->featured_image_id == $image->id){
+            throw ValidationException::withMessages(['image' => 'cannot delete the featured image.']);
+        }
+
+        Storage::disk('public')->delete($image->path);
+
+        $image->delete();
     }
 }

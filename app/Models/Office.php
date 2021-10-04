@@ -30,6 +30,7 @@ class Office extends Model
         'hidden',
         'price_per_day',
         'monthly_discount',
+        'featured_image_id',
     ];
 
     protected $casts = [
@@ -54,6 +55,11 @@ class Office extends Model
     public function images(): MorphMany
     {
         return $this->morphMany(Image::class, 'resource');
+    }
+
+    public function featuredImage(): BelongsTo
+    {
+        return $this->belongsTo(Image::class, 'featured_image_id');
     }
 
     public function tags(): BelongsToMany
