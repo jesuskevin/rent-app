@@ -9,17 +9,18 @@ use App\Models\Reservation;
 use App\Models\Tag;
 use App\Models\User;
 use App\Notifications\OfficePendingApproval;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Tests\TestCase;
+use Illuminate\Support\Facades\Storage;
 
 class OfficeControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_itListAllOfficesInPaginatedWay()
     {
@@ -346,8 +347,14 @@ class OfficeControllerTest extends TestCase
 
     public function test_itCanDeleteOffices()
     {
+        Storage::put('/office_image.jpg', 'empty');
+
         $user = User::factory()->create();
         $office = Office::factory()->for($user)->create();
+
+        $image = $office->images()->create([
+            'path' => 'office_image.jpg'
+        ]);
 
         $this->actingAs($user);
 
@@ -356,6 +363,9 @@ class OfficeControllerTest extends TestCase
         $response->assertOk();
 
         $this->assertSoftDeleted($office);
+
+        // $response->assertOk();
+        Storage::assertMissing('office_image.jpg');
 
     }
     
@@ -372,10 +382,7 @@ class OfficeControllerTest extends TestCase
 
         $response->assertUnprocessable();
 
-        $this->assertDatabaseHas('offices', [
-            'id' => $office->id,
-            'deleted_at' => null
-        ]);
+        $this->assertNotSoftDeleted($office);
     }
 
     /**

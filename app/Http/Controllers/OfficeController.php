@@ -21,13 +21,14 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Nette\Utils\Json;
+use Illuminate\Support\Facades\Storage;
 
 class OfficeController extends Controller
 {
     public function index(): JsonResource
     {
         $offices = Office::query()
-            ->when(request('user_id') && auth()->user() && request('user_id') == auth()->user()->id,
+            ->when(request('user_id') && auth()->guard('sanctum')->user() && request('user_id') == auth()->user()->id,
                 fn($builder) => $builder,
                 fn($builder) => $builder->where('approval_status', Office::APPROVAL_APPROVED)->where('hidden', false)
             )
@@ -134,6 +135,11 @@ class OfficeController extends Controller
         if($office->reservations()->where('status', Reservation::STATUS_ACTIVE)->exists()){
             throw ValidationException::withMessages(['office' => 'Cannot delete this office because it has active reservations.']);
         }
+
+        $office->images()->each(function($image) {
+            Storage::delete($image->path);
+            $image->delete();
+        });
 
         $office->delete();
     }

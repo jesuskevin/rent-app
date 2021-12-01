@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\Office;
 use App\Models\User;
 use Illuminate\Contracts\Cache\Store;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -15,11 +15,11 @@ use Tests\TestCase;
 class OfficeImageControllerTest extends TestCase
 {
     
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_itUploadsAnImageAndStoreItUnderTheOffice()
     {
-        Storage::fake('public');
+        Storage::fake();
 
         $user = User::factory()->create();
         $office = Office::factory()->for($user)->create();
@@ -31,12 +31,12 @@ class OfficeImageControllerTest extends TestCase
         ]);
 
         $response->assertCreated();
-        Storage::disk('public')->assertExists($response->json('data.path'));
+        Storage::assertExists($response->json('data.path'));
     }
 
     public function test_itDeletesAnImage()
     {
-        Storage::disk('public')->put('/office_image.jpg', 'empty');   
+        Storage::put('/office_image.jpg', 'empty');   
 
         $user = User::factory()->create();
         $office = Office::factory()->for($user)->create();
@@ -54,7 +54,7 @@ class OfficeImageControllerTest extends TestCase
         $response = $this->deleteJson("/api/offices/{$office->id}/images/{$image->id}");
 
         $response->assertOk();
-        Storage::disk('public')->assertMissing('office_image.jpg');
+        Storage::assertMissing('office_image.jpg');
     }
 
     public function test_itDoesntDeleteTheOnlyImage()
@@ -114,7 +114,8 @@ class OfficeImageControllerTest extends TestCase
 
         $response = $this->deleteJson("/api/offices/{$office->id}/images/{$image->id}");
 
-        $response->assertUnprocessable();
-        $response->assertJsonValidationErrors(['image' => 'cannot delete this image.']);
+        $response->assertNotFound();
+        // $response->assertUnprocessable();
+        // $response->assertJsonValidationErrors(['image' => 'cannot delete this image.']);
     }
 }

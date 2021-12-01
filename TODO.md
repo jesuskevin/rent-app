@@ -69,6 +69,52 @@
 [x] Can only delete their own offices
 [x] Cannot delete an office that has a reservation
 
+## 12/10/21
+
+[x] Delete all the images when deleting an office
+[x] Use the default disk to store public images so it's easier to switch to diferent drivers in production
+[x] Use the keyed implicit binding in the office image routes so laravel scopes to the office that the image belongs to.
+    - [Tweet](https://twitter.com/themsaid/status/1441323002222637062)
+
 ## List reservations endpoint
 
-[] 
+[x] Must be authenticated & email verified
+[x] Token (if exits) must allow `reservations.show`
+[x] Can only list their own reservations or reservations on their offices
+[x] Allow filtering by office_id only for authenticated host
+[x] Allow filtering by user_id only for authenticated user
+[x] Allow filtering by date range
+[x] Allow filtering by status
+[x] Paginate
+
+## 29/1/2021
+
+[x] Switch to using Sanctum guard by default
+[x] Use the new [assertNotDeleted](https://github.com/laravel/framework/pull/38886)
+[x] Use the new LazilyRefreshDatabase testing trait on the base test class
+
+## Make Reservations Endpoint
+
+[x] Must be authenticated & email verified
+[x] Token (if exits) must allow `reservations.make`
+[x] Cannot make reservations on their own property
+[x] Validate no other reservation conflicts with the same time
+[x] Use locks to make the process atomic
+[] Email user & host when a reservation is made
+[] Email user & host on reservation start day
+[] Generate WIFI password for new reservations (store encrypted)
+
+## Cancel Reservations endpoint
+
+[] Must be authenticated & email verified
+[] Token (if exits) must allow `reservations.cancel`
+[] Can only cancel their own reservations
+[] Can only cancel an active reservation that has a start_date in the future
+
+## Housekeeping
+
+[x] Convert filtering reservation by date to Eloquent Scopes
+[x] Include reservations that started before range and ended after range while filtering
+[] You cannot make a reservation on a pending or hidden office
+[] Filter offices by tag
+[] API should return the full URI of the image ...
