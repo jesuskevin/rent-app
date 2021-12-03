@@ -39,6 +39,14 @@ class OfficeController extends Controller
                 fn (Builder $builder) => $builder->nearestTo(request('lat'), request('lng')),
                 fn (Builder $builder) => $builder->orderBy('id', 'ASC')
             )
+            ->when(request('tags'),
+                fn (Builder $builder) => $builder->whereHas(
+                    'tags',
+                    fn (Builder $builder) => $builder->whereIn('id', request('tags')),
+                    '=',
+                    count(request('tags'))
+                )
+            )
             ->with(['images', 'tags', 'user'])
             ->withCount(['reservations' => fn (Builder $builder) => $builder->where('status', Reservation::STATUS_ACTIVE)])
             ->paginate(20);

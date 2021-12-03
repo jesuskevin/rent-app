@@ -5,9 +5,12 @@ namespace Tests\Feature;
 use App\Models\Office;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Notifications\NewUserReservation;
+use App\Notifications\NewHostReservation;
 use Database\Factories\ReservationFactory;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class UserReservationControllerTest extends TestCase
@@ -204,6 +207,36 @@ class UserReservationControllerTest extends TestCase
         $response->assertUnprocessable()->assertJsonValidationErrors(['office_id' => 'You cannot make a reservation on your own office']);
     }
 
+    public function test_itCannotMakeReservationOnOfficeThatIsPendingOrHidden()
+    {
+        $user = User::factory()->create();
+
+        $office = Office::factory()->create([
+            'approval_status' => Office::APPROVAL_PENDING,
+        ]);
+
+        $office2 = Office::factory()->create([
+            'hidden' => true,
+        ]);
+
+        $this->actingAs($user);
+
+        $response = $this->postJson('/api/reservations', [
+            'office_id' => $office->id,
+            'start_date' => now()->addDays(1),
+            'end_date' => now()->addDays(41),
+        ]);
+
+        $response2 = $this->postJson('/api/reservations', [
+            'office_id' => $office2->id,
+            'start_date' => now()->addDays(1),
+            'end_date' => now()->addDays(41),
+        ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors(['office_id' => 'You cannot make a reservation on a hidden office']);
+        $response2->assertUnprocessable()->assertJsonValidationErrors(['office_id' => 'You cannot make a reservation on a hidden office']);
+    }
+
     public function test_itCannotMakeReservationLessThan2Days()
     {
         $user = User::factory()->create();
@@ -214,11 +247,28 @@ class UserReservationControllerTest extends TestCase
 
         $response = $this->postJson('/api/reservations', [
             'office_id' => $office->id,
-            'start_date' => now()->addDays(1),
-            'end_date' => now()->addDays(1),
+            'start_date' => now()->addDays(),
+            'end_date' => now()->addDays(),
         ]);
 
-        $response->assertUnprocessable()->assertJsonValidationErrors(['start_date' => 'You cannot make a reservation for only 1 day']);
+        $response->assertUnprocessable()->assertJsonValidationErrors(['end_date' => 'The end date must be a date after start date.']);
+    }
+
+    public function test_itCannotMakeReservationOnSameDay()
+    {
+        $user = User::factory()->create();
+
+        $office = Office::factory()->create();
+
+        $this->actingAs($user);
+
+        $response = $this->postJson('/api/reservations', [
+            'office_id' => $office->id,
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addDays(3)->toDateString(),
+        ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors(['start_date' => 'The start date must be a date after today.']);
     }
 
     public function test_itMakeReservationFor2Days()
@@ -242,14 +292,14 @@ class UserReservationControllerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $fromDate = now()->addDay(1)->toDateString();
+        $fromDate = now()->addDays(2)->toDateString();
         $toDate = now()->addDay(15)->toDateString();
 
         $office = Office::factory()->create();
 
         Reservation::factory()->for($office)->create([
             'start_date' => now()->addDay(2),
-            'end_date' => $toDate
+            'end_date' => $toDate,
         ]);
 
         $this->actingAs($user);
@@ -261,5 +311,27 @@ class UserReservationControllerTest extends TestCase
         ]);
 
         $response->assertUnprocessable()->assertJsonValidationErrors(['office_id' => 'You cannot make a reservation during this time']);
+    }
+
+    public function test_itSendsNotificationsOnNewReservations()
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $office = Office::factory()->create();
+
+        $this->actingAs($user);
+
+        $response = $this->postJson('/api/reservations', [
+            'office_id' => $office->id,
+            'start_date' => now()->addDays(1),
+            'end_date' => now()->addDays(2),
+        ]);
+
+        Notification::assertSentTo($user, NewUserReservation::class);
+        Notification::assertSentTo($office->user, NewHostReservation::class);
+
+        $response->assertCreated();
     }
 }

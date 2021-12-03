@@ -100,21 +100,24 @@
 [x] Cannot make reservations on their own property
 [x] Validate no other reservation conflicts with the same time
 [x] Use locks to make the process atomic
-[] Email user & host when a reservation is made
-[] Email user & host on reservation start day
-[] Generate WIFI password for new reservations (store encrypted)
+[x] Read the request input form the validator output
+[x] You cannot make a reservation on a pending or hidden office
+[x] Test you can make a reservation starting next day but cannot make one on same day
+[x] Email user & host when a reservation is made
+[x] Email user & host on reservation start day
+[x] Generate WIFI password for new reservations (store encrypted)
 
 ## Cancel Reservations endpoint
 
-[] Must be authenticated & email verified
-[] Token (if exits) must allow `reservations.cancel`
-[] Can only cancel their own reservations
-[] Can only cancel an active reservation that has a start_date in the future
+[x] Must be authenticated & email verified
+[x] Token (if exits) must allow `reservations.cancel`
+[x] Can only cancel their own reservations
+[x] Can only cancel an active reservation that has a start_date in the future
 
 ## Housekeeping
 
 [x] Convert filtering reservation by date to Eloquent Scopes
 [x] Include reservations that started before range and ended after range while filtering
-[] You cannot make a reservation on a pending or hidden office
-[] Filter offices by tag
-[] API should return the full URI of the image ...
+[x] Filter offices by tag
+[x] API should return the full URI of the image so that the consumer can load easily
+[] Test SendDueReservationsNotifications command

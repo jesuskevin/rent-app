@@ -17,6 +17,7 @@ class OfficeValidator
                 'lat' => [Rule::when($office->exists, 'sometimes'), 'required', 'numeric'],
                 'lng' => [Rule::when($office->exists, 'sometimes'), 'required', 'numeric'],
                 'address_line1' => [Rule::when($office->exists, 'sometimes'), 'required', 'string'],
+                'address_line2' => ['string'],
                 'price_per_day' => [Rule::when($office->exists, 'sometimes'), 'required', 'integer', 'min:100'],
                 
                 'featured_image_id' => [Rule::exists('images', 'id')->where('resource_type', 'office')->where('resource_id', $office->id)],

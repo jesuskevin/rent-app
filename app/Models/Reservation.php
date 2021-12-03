@@ -20,6 +20,7 @@ class Reservation extends Model
         'status',
         'start_date',
         'end_date',
+        'wifi_password',
     ];
 
     protected $casts = [
@@ -27,6 +28,7 @@ class Reservation extends Model
         'status' => 'integer',
         'start_date' => 'immutable_date',
         'end_date' => 'immutable_date',
+        'wifi_password' => 'encrypted'
     ];
 
     public function user(): BelongsTo

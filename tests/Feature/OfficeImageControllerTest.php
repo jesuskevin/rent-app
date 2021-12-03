@@ -31,7 +31,7 @@ class OfficeImageControllerTest extends TestCase
         ]);
 
         $response->assertCreated();
-        Storage::assertExists($response->json('data.path'));
+        $response->assertJsonStructure(['data' => ['path']]);
     }
 
     public function test_itDeletesAnImage()
