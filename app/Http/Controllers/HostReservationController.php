@@ -12,12 +12,13 @@ class HostReservationController extends Controller
 {
     public function index()
     {
-        if(!auth()->user()->tokenCan('reservations.show')){
+        if (!auth()->user()->tokenCan('reservations.show')) {
             abort(Response::HTTP_FORBIDDEN);
         }
 
         validator(
-            request()->all(), [
+            request()->all(),
+            [
                 'status' => Rule::in(Reservation::STATUS_ACTIVE, Reservation::STATUS_CANCELED),
                 'office_id' => ['integer'],
                 'user_id' => ['integer'],
@@ -39,4 +40,5 @@ class HostReservationController extends Controller
             ->paginate(20);
 
         return ReservationResource::collection($reservations);
+    }
 }
